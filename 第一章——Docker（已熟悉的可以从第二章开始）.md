@@ -16,22 +16,54 @@
 >
 > 推荐书籍：深入剖析kubernetes（书籍），你也可以去下载免费的https://pan.baidu.com/s/1gWAQUVsqs1AdMPvRuaEtNA 提取码：q0ht
 
-环境：centos7.6，2核2G内存（1C2G即可）
+环境：CentOS 7.6，2核2G内存（1C2G即可）
 
 > 如果你需要7.6的镜像和xshell可以去网上下载或者我提供的包https://pan.baidu.com/s/1mkIzua1XQmew240XBbvuFA 提取码：7p6h。当然如果你下载7.6镜像包比较慢，想先上手做一下，可以联系我QQ：909336740给你开一个**免费**的7天1C2G云服务器（腾讯云/限2020年6月前）
 
-~~~
+~~~bash
 # 查看机器信息，内核版本必须是3.8以上
-~]# uname -a
-#out： Linux VM_0_5_centos 3.10.0-957.21.3.el7.x86_64 #1 SMP Tue Jun 18 16:35:19 UTC 2019 x86_64 x86_64 x86_64 GNU/Linux
-~]# cat /etc/redhat-release 
-#out： CentOS Linux release 7.6.1810 (Core) 
+[root@linuxlearning ~]# uname -a
+Linux linuxlearning 3.10.0-1062.9.1.el7.x86_64 #1 SMP Fri Dec 6 15:49:49 UTC 2019 x86_64 x86_64 x86_64 GNU/Linux
+
+# 查看 CentOS 版本
+[root@linuxlearning ~]# cat /etc/redhat-release 
+CentOS Linux release 7.7.1908 (Core)
+
+# 显示当前 SELinux 的应用模式
+[root@linuxlearning ~]# getenforce
+Disabled
+# 如果不是 Disabled，编辑对应文件，找到 SELINUX，设置其为 Disabled
+[root@linuxlearning ~]# vim /etc/selinux/config 
+SELINUX=disabled
+# 保存退出，然后重启服务
+
 # 关闭防火墙
-~]# getenforce
-#out： Disabled
-~]# systemctl stop firewalld
-# 查看内存大小
-~]# free -m
+[root@linuxlearning ~]# systemctl stop firewalld
+# 查看防火墙状态
+[root@linuxlearning ~]# systemctl status firewalld
+● firewalld.service - firewalld - dynamic firewall daemon
+   Loaded: loaded (/usr/lib/systemd/system/firewalld.service; disabled; vendor preset: enabled)
+   Active: inactive (dead)
+     Docs: man:firewalld(1)
+
+# 关闭 SELinux 服务
+[root@linuxlearning ~]# setenforce 0
+setenforce: SELinux is disabled
+# 查看是否关闭
+[root@linuxlearning ~]# getenforce
+Disabled
+
+# 查看系统磁盘使用情况
+[root@linuxlearning ~]# free -h
+              total        used        free      shared  buff/cache   available
+Mem:           1.8G        188M         82M        472K        1.5G        1.4G
+Swap:            0B          0B          0B
+
+# 查看系统内存使用情况
+[root@linuxlearning ~]# free -m
+              total        used        free      shared  buff/cache   available
+Mem:           1837         188          82           0        1567        1466
+Swap:             0           0           0
 ~~~
 
 > **uname**：可显示电脑及操作系统的相关信息，-a/-all：显示全部信息
@@ -46,20 +78,53 @@
 
 ![1578539634672](assets/1578539634672.png)
 
-~~~
-# 查看网络，并安装必要组件
-~]# ping baidu.com
-# 注意，你的本地源得是删掉的，一般是没有的
-# rm /etc/yum.repos.d/local.repo
-~]#curl -o /etc/yum.repos.d/CentOS-Base.repo http://mirrors.aliyun.com/repo/Centos-7.repo
-~]# yum install epel-release -y
-# 安装docker包
-~]# yum list docker --show-duplicates
-~]# yum install -y yum-utils
-~]# yum-config-manager --add-repo http://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo
-~]# yum list docker-ce --show-duplicates
-~]# yum install -y docker-ce
-#out：...Complete!
+~~~bash
+# 查看网络是否通畅，按 ctrl + c 退出
+[root@linuxlearning ~]# ping baidu.com
+PING baidu.com (39.156.69.79) 56(84) bytes of data.
+64 bytes from 39.156.69.79 (39.156.69.79): icmp_seq=1 ttl=251 time=5.01 ms
+64 bytes from 39.156.69.79 (39.156.69.79): icmp_seq=2 ttl=251 time=4.84 ms
+64 bytes from 39.156.69.79 (39.156.69.79): icmp_seq=3 ttl=251 time=4.98 ms
+^C
+--- baidu.com ping statistics ---
+3 packets transmitted, 3 received, 0% packet loss, time 2003ms
+rtt min/avg/max/mdev = 4.842/4.946/5.014/0.074 ms
+
+# 统一 yum 安装的环境
+# 1. 浏览器中搜索“阿里巴巴开源镜像站”，点击进入官网
+# 2. 点击 centos 模块，找到对应版本，比如这里是 CentOS7 的，复制 curl 命令的内容
+# 3. 终端执行该命令
+[root@linuxlearning ~]# curl -o /etc/yum.repos.d/CentOS-Base.repo http://mirrors.aliyun.com/repo/Centos-7.repo
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100  2523  100  2523    0     0  17001      0 --:--:-- --:--:-- --:--:-- 17047
+# 4. 查看下载的内容, 发现已经是阿里云相关信息
+[root@linuxlearning ~]# cat /etc/yum.repos.d/CentOS-Base.repo 
+
+# 安装必要的软件包
+[root@linuxlearning ~]# yum install epel-release -y
+
+# 安装 docker 包
+[root@linuxlearning ~]# yum list docker --show-duplicates
+Loaded plugins: fastestmirror, langpacks
+Repository epel is listed more than once in the configuration
+Loading mirror speeds from cached hostfile
+ * base: mirrors.aliyun.com
+ * extras: mirrors.aliyun.com
+ * updates: mirrors.aliyun.com
+Available Packages
+docker.x86_64             2:1.13.1-102.git7f2769b.el7.centos              extras
+docker.x86_64             2:1.13.1-103.git7f2769b.el7.centos              extras
+docker.x86_64             2:1.13.1-108.git4ef4b30.el7.centos              extras
+docker.x86_64             2:1.13.1-109.gitcccb291.el7.centos              extras
+
+[root@linuxlearning ~]# yum install -y yum-utils
+
+[root@linuxlearning ~]# yum-config-manager --add-repo http://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo
+
+[root@linuxlearning ~]# yum list docker-ce --show-duplicates
+
+[root@linuxlearning ~]# yum install -y docker-ce
 ~~~
 
 > **ping**：执行ping指令会使用ICMP传输协议，发出要求回应的信息，若远端主机的网络功能没有问题，就会回应该信息，因而得知该主机运作正常
@@ -67,6 +132,14 @@
 > **rm** ：命令用于删除一个文件或者目录。
 >
 > **curl**：支持文件的上传和下载，是综合传输工具
+>
+> ​		  curl 命令的作用：
+>
+> ​                1）从阿里云下载一个 yum 源文件
+>
+> ​                2）更新默认的 /etc/yum.repos.d/CentOS-Base.repo
+>
+> ​                3）使下载环境统一
 >
 > **yum**：提供了查找、安装、删除某一个、一组甚至全部软件包的命令，
 >
@@ -76,11 +149,16 @@
 
 ![1578540090773](assets/1578540090773.png)
 
-~~~
-# 设为开机启动，启动并修改相关配置
-~]# systemctl enable docker
-~]# systemctl start docker
-~]# vi /etc/docker/daemon.json
+~~~bash
+# 设置开机启动 docker 服务
+[root@linuxlearning ~]# systemctl enable docker
+
+# 启动 docker
+[root@linuxlearning ~]# systemctl start docker
+
+# 修改配置文件
+[root@linuxlearning ~]# vim /etc/docker/daemon.json
+# 如果有内容，将其全部替换成以下内容：
 {
   "graph": "/data/docker",
   "storage-driver": "overlay2",
@@ -91,12 +169,13 @@
   "live-restore": true
 }
 
-# 重启docker让配置生效
-~]# systemctl reset-failed docker.service
-~]# systemctl start docker.service
-~]# systemctl restart docker
-# 如果失败了，systemctl status docker查看报错信息
-~]# docker info
+# 重启 docker 让配置生效
+[root@linuxlearning ~]# systemctl reset-failed docker.service
+[root@linuxlearning ~]# systemctl start docker.service
+[root@linuxlearning ~]# systemctl restart docker
+
+# 查看 docker 相关信息
+[root@linuxlearning ~]# docker info
 ~~~
 
 > **daemon.json**文件内容解析：
@@ -116,11 +195,11 @@
 
 
 
-### 开启我们的第一个docker容器
+### 开启我们的第一个 docker 容器
 
-~~~
-~]# docker run hello-world
-# docker是典型的CS架构
+~~~bash
+# docker 是典型的 CS 架构
+[root@linuxlearning ~]# docker run hello-world
 ~~~
 
 > **docker run**：创建一个新的容器并运行，现在本地是没有镜像的，但是它会自动拉取网上的，如下图：
@@ -133,10 +212,10 @@
 
 > 上图为docker容器和本地仓库、远程仓库的关系
 
-~~~
-镜像常规结构如下：
+~~~bash
+# 镜像常规结构如下：
 ${registry_name}/${repository_name}/${image_name}:${tag_name}
-例如：
+# 例如
 docker.io/library/alipine:3.10.1
 ~~~
 
@@ -148,16 +227,26 @@ docker.io/library/alipine:3.10.1
 
 ![1578551639317](assets/1578551639317.png)
 
-~~~
-# 登录你的远程仓库
-~]# docker login docker.io
-# 你的登录信息在这里
-~]# cat /root/.docker/config.json
+~~~bash
+# 注册并登录你的远程仓库：https://hub.docker.com/
+[root@linuxlearning ~]# docker login docker.io
+
+# 查看登录信息
+[root@linuxlearning ~]# cat /root/.docker/config.json 
+{
+	"auths": {
+		"https://index.docker.io/v1/": {
+			"auth": "aHVhbmd4aW5neWU6aHN6MTk5MDQ4Ng=="
+		}
+	},
+	"HttpHeaders": {
+		"User-Agent": "Docker-Client/19.03.8 (linux)"
+	}
 ~~~
 
 > 复习：
 >
-> - cat：用于连接文件并打印内容到页面
+> - cat：查看某个文件的内容信息
 
 ![1578551787380](assets/1578551787380.png)
 
@@ -165,13 +254,26 @@ docker.io/library/alipine:3.10.1
 
 
 
-### Docker镜像管理实战
+### Docker镜像管理实战模拟（与项目无关）
 
-~~~
-~]# docker search alpine
-~]# docker pull alpine
-~]# docker pull alpine:3.10.3
-~]# docker pull alpine:3.10.1
+~~~bash
+# 查找名为 alpine 的镜像有哪些，一般第一个是官方的、正规的
+[root@linuxlearning ~]# docker search alpine
+
+# 拉取第一个
+[root@linuxlearning ~]# docker pull alpine
+Using default tag: latest
+latest: Pulling from library/alpine
+aad63a933944: Pull complete 
+Digest: sha256:b276d875eeed9c7d3f1cfa7edb06b22ed22b14219a7d67c52c56612330348239
+Status: Downloaded newer image for alpine:latest
+docker.io/library/alpine:latest
+
+# 查看已有的镜像
+[root@linuxlearning ~]# docker images
+REPOSITORY          TAG                 IMAGE ID            CREATED             SIZE
+alpine              latest              a187dde48cd2        10 days ago         5.6MB
+hello-world         latest              fce289e99eb9        15 months ago       1.84kB
 ~~~
 
 > **docker pull**：从镜像仓库中拉取或者更新指定镜像
@@ -182,10 +284,12 @@ docker.io/library/alipine:3.10.1
 
 ![1578552027321](assets/1578552027321.png)
 
-~~~
-~]# docker images
-~]# docker image ls
-~]# docker tag 965ea09ff2eb docker.io/909336740/alpine:v3.10.3
+~~~bash
+# 复制 alpine 的镜像 ID，为其设置标签，然后放在 dockerhub 上创建的账户的本地分支上
+# 注意路径中的用户名输入自己在 dockerhub 的登录账号
+# 假设下载的 alpine 版本是 3.10.1，则最后可设置为：
+# docker tag a187dde48cd2 docker.io/huangxingye/alpine:v3.10.1
+[root@linuxlearning ~]# docker tag a187dde48cd2 docker.io/huangxingye/alpine:latest
 ~~~
 
 > **docker images/docker image ls :** 列出本地镜像
@@ -196,18 +300,32 @@ docker.io/library/alipine:3.10.1
 
 ![1578552367676](assets/1578552367676.png)
 
-~~~
-~]# docker push docker.io/909336740/alpine:v3.10.3
+~~~bash
+# 将该镜像推送到 dockerhub 远程镜像仓库中，推送成功后，在 dockerhub 页面刷新查看自己的仓库，发现有了
+[root@linuxlearning ~]# docker push docker.io/huangxingye/alpine:latest
 ~~~
 
 > **docker push**：将本地的镜像上传到镜像仓库,要先登陆到镜像仓库，带版本号
 >
 > - 语法：docker push [OPTIONS] NAME[:TAG]
 
-~~~
-~]# docker rmi 965ea09ff2eb
-~]# docker rmi -f 965ea09ff2eb
-# docker pull 909336740/alpine 拉取自己远程仓库镜像
+~~~bash
+# 此时可以把本地的 alpine 删除，然后将远程的拉取下来
+[root@linuxlearning ~]# docker rmi -f a187dde48cd2
+
+# 查看该镜像是否已经删除
+[root@linuxlearning ~]# docker images
+REPOSITORY          TAG                 IMAGE ID            CREATED             SIZE
+hello-world         latest              fce289e99eb9        15 months ago       1.84kB
+
+# 然后将远程的拉取下来
+[root@linuxlearning ~]# docker pull huangxingye/alpine
+
+# 再次查看是否有了该镜像
+[root@linuxlearning ~]# docker images
+REPOSITORY           TAG                 IMAGE ID            CREATED             SIZE
+用户名/alpine         latest              a187dde48cd2        10 days ago         5.6MB
+hello-world          latest              fce289e99eb9        15 months ago       1.84kB
 ~~~
 
 > **docker rmi：**删除本地一个或多少镜像
@@ -226,24 +344,25 @@ docker.io/library/alipine:3.10.1
 
 
 
-### docker容器基本操作
+### docker容器基本操作示范
 
-~~~
-# 全部有记录的容器进程
-~]# docker ps -a
-# 存活的容器进程
-~]# docker ps
-# 启动容器（运行容器）
-~]# docker run [options] image[command]
+~~~bash
+# 查看有记录的容器进程
+[root@linuxlearning ~]# docker ps -a
+
+# 查看存活的容器进程
+[root@linuxlearning ~]# docker ps -a
+
 # 过滤出全部已经退出的容器并删掉
-~]# for i in `docker ps -a|grep -i exit|awk '{print $1}'`;do docker rm -f $i;done
-# 查看日志，-f：跟踪日志输出，即是夯住，可以按ctrl+c
-~]# docker log -f <容器id>
+[root@linuxlearning ~]# for i in `docker ps -a|grep -i exit|awk '{print $1}'`;do docker rm -f $i;done
+8101bda60ca4
 ~~~
 
 > **Ctrl+c:** 强制中断程序的执行
 >
 > **Ctrl+z:** 将任务中断,但是此任务并没有结束,他仍然在进程中他只是维持挂起的状态
+
+
 
 ### docker容器高级操作
 
@@ -267,19 +386,42 @@ docker.io/library/alipine:3.10.1
 
 - yum/apt-get/apt等
 
-~~~
-# 映射端口
-~]# docker pull nginx:1.12.2
-~]# docker images
-~]# docker tag 4037a5562b03 909336740/nginx:v1.12.2
-~]# docker push 909336740/nginx:v1.12.2
-~]# docker images
-~]# docker run --rm --name mynginx -d -p81:80 909336740/nginx:v1.12.2
+~~~bash
+# 拉取指定版本的 nginx
+[root@linuxlearning ~]# docker pull nginx:1.12.2
+
+# 查看已经下载的镜像
+[root@linuxlearning ~]# docker images
+REPOSITORY           TAG                 IMAGE ID            CREATED             SIZE
+huangxingye/alpine   latest              a187dde48cd2        10 days ago         5.6MB
+hello-world          latest              fce289e99eb9        15 months ago       1.84kB
+nginx                1.12.2              4037a5562b03        23 months ago       108MB
+
+# 将 nginx　指定的版本设置标签
+[root@linuxlearning ~]# docker tag 4037a5562b03 huangxingye/nginx:v1.12.2
+
+# 将其推送到远程镜像仓库
+[root@linuxlearning ~]# docker push huangxingye/nginx:v1.12.2
+
+# 查看 nginx　镜像是否在运行
+[root@linuxlearning ~]# docker run --rm --name mynginx -d -p81:80 huangxingye/nginx:v1.12.2
+2eadc0393de61eee853c823d271168f7c27702dfacc0df717ea9d36fcfaecf5b
+
 # 查看是否起来了
-~]# docker ps -a 
-~]# netstat -luntp|grep 81
-~]# curl 127.0.0.1:81
-~]# docker 
+[root@linuxlearning ~]# docker ps -a
+CONTAINER ID        IMAGE                       COMMAND                  CREATED             STATUS              PORTS                NAMES
+2eadc0393de6        huangxingye/nginx:v1.12.2   "nginx -g 'daemon of…"   31 seconds ago      Up 31 seconds       0.0.0.0:81->80/tcp   mynginx
+
+# 查看 81 相关信息（这里其实是要找 81　端口，但获取的结果可能不止这个信息）
+[root@linuxlearning ~]# netstat -luntp | grep 81
+
+# 向本地服务器 81 端口发送请求
+[root@linuxlearning ~]# curl 127.0.0.1:81
+<!DOCTYPE html>
+<html>
+<head>
+<title>Welcome to nginx!</title>
+...
 ~~~
 
 > **docker run**: 
